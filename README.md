@@ -120,7 +120,27 @@ You will need a GPU with around 8 GB VRAM to run this in real-time.
      ```   
 
 ## Running the Application
-     python ai_voicetalk_local.py
+
+### Natively
+    python ai_voicetalk_local.py
+
+### With Docker
+This project includes a `Dockerfile` for easy setup and deployment using Docker.
+
+**Prerequisites:**
+- [Docker](https://docs.docker.com/get-docker/) installed on your system.
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) for GPU support.
+
+**Build the Docker image:**
+```shell
+docker build -t local-ai-voice-chat .
+```
+
+**Run the Docker container:**
+```shell
+docker run -it --rm --gpus all local-ai-voice-chat
+```
+The application will start, and you can interact with it in your terminal.
 
 ## Customize
 
@@ -128,11 +148,23 @@ You will need a GPU with around 8 GB VRAM to run this in real-time.
 
 Open chat_params.json to change the talk scenario.
 
-### Change AI Voice
+### Customizing the Voice
 
-- Open ai_voicetalk_local.py. 
-- Find this line: coqui_engine = CoquiEngine(cloning_reference_wav="female.wav", language="en")
-- Change "female.wav" to the filename of a wave file (44100 or 22050 Hz mono 16-bit) containing the voice to clone
+The application allows you to use custom voices for the AI. When you start the application, you will be prompted to select a voice from 1 to 5. These voices correspond to files in the `voices` directory.
+
+You can use two types of voice files:
+
+1.  **WAV files for voice cloning**:
+    *   Place your own `.wav` files in the `voices` directory. The files should be named `voice1.wav`, `voice2.wav`, etc.
+    *   The recommended format is a 16-bit mono WAV file with a sample rate of 44100 Hz or 22050 Hz.
+    *   When you select a voice number corresponding to a `.wav` file, the application will use it to clone the voice in real-time.
+
+2.  **Pre-computed voice embeddings (JSON files)**:
+    *   The repository includes pre-computed voice embeddings in the `voices` directory (`voice1.json` to `voice5.json`).
+    *   These `.json` files contain the speaker embeddings for Coqui TTS, which allows for faster voice loading without needing the original `.wav` file.
+    *   If a `.json` file is present for a selected voice number, it will be used. If both a `.wav` and a `.json` file exist for the same voice number, the `.wav` file will be prioritized for cloning.
+
+To add your own custom voice, simply add a `voiceX.wav` file to the `voices` directory, where `X` is a number.
 
 ### Speech end detection
 
