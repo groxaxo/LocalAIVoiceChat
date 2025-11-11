@@ -1,0 +1,22 @@
+{
+    "n_gpu_layers": 35,
+    "n_threads": 4,
+    "verbose": false,
+    "model_path": ".\\models\\zephyr-7b-beta.Q5_K_M.gguf",
+    "n_ctx": 8192,
+    "seed": 0,
+    "n_batch": 2048,
+    "use_mmap": true,
+    "use_mlock": false,
+    "mul_mat_q": true,
+    "low_vram": false,
+    "rope_freq_base": 10000.0,
+    "tensor_split": null,
+    "rope_freq_scale": 1.0,
+    "f16_kv": true,
+    "logits_all": false,
+    "vocab_only": false,
+    "use_mlock": false,
+    "embedding": false,
+    "last_n_tokens_size": 64
+}
