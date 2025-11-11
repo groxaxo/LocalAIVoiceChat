@@ -177,13 +177,31 @@ python ai_voicetalk_local.py
 
 The application will automatically detect your hardware and apply optimized settings.
 
-### Check Hardware Optimization
-To see what optimizations are applied to your system:
+### Helpful Tools
+
+**Check Setup**
+```bash
+python check_setup.py
+```
+Verifies all dependencies are installed and configured correctly.
+
+**Hardware Detection**
 ```bash
 python hardware_detector.py
 ```
+Displays your hardware capabilities and recommended settings.
 
-This will display your hardware capabilities and recommended settings.
+**Interactive Config Optimizer**
+```bash
+python optimize_config.py
+```
+Helps you create custom optimized configurations for your specific needs (speed, quality, memory, or balanced).
+
+**Performance Benchmark** (Optional)
+```bash
+python benchmark.py
+```
+Tests your configuration and provides performance metrics and recommendations.
 
 ## Customize
 
