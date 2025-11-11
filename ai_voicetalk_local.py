@@ -5,20 +5,28 @@ if __name__ == '__main__':
     import torch
     import json
     import os
+    from hardware_detector import get_optimal_config, load_optimal_config, print_hardware_info
 
     output = ""
     llama_cpp_cuda = None
 
+    # Detect hardware capabilities
+    print("\n" + "="*60)
+    print("Detecting hardware for optimal performance...")
+    print("="*60)
+    hw_config = print_hardware_info()
+
     if torch.cuda.is_available():
         try:
-            print (f"try to import llama_cpp_cuda")
+            print (f"\nTrying to import llama_cpp_cuda...")
             import llama_cpp_cuda
+            print("llama_cpp_cuda imported successfully")
         except:
-            print (f"llama_cpp_cuda import failed")
+            print (f"llama_cpp_cuda import failed, falling back to llama_cpp")
             llama_cpp_cuda = None
     elif torch.version.hip:
         try:
-            print (f"try to import llama_cpp")
+            print (f"Trying to import llama_cpp with ROCm support...")
             import llama_cpp
         except:
             print (f"ROCm is not available")
@@ -26,10 +34,10 @@ if __name__ == '__main__':
 
     def llama_cpp_lib():
         if llama_cpp_cuda is None:
-            print ("llama_cpp_lib: return llama_cpp")
+            print ("Using: llama_cpp (CPU or standard CUDA)")
             return llama_cpp
         else:
-            print ("llama_cpp_lib: return llama_cpp_cuda")
+            print ("Using: llama_cpp_cuda (optimized CUDA)")
             return llama_cpp_cuda
 
     Llama = llama_cpp_lib().Llama
@@ -82,8 +90,15 @@ if __name__ == '__main__':
             output += text
             yield text
 
-    with open('creation_params.json') as f:
-        creation_params = json.load(f)
+    # Load optimized configuration based on hardware detection
+    creation_params = load_optimal_config()
+    
+    # Allow manual override if specific config file exists
+    if os.path.exists('creation_params_override.json'):
+        print("\nFound creation_params_override.json, using manual configuration")
+        with open('creation_params_override.json') as f:
+            creation_params = json.load(f)
+    
     with open('completion_params.json') as f:
         completion_params = json.load(f)
     with open('chat_params.json') as f:
@@ -95,23 +110,59 @@ if __name__ == '__main__':
     if not completion_params['logits_processor']:
         completion_params['logits_processor'] = None
 
+    # Display loaded configuration
+    print(f"\nModel Configuration:")
+    print(f"  GPU Layers: {creation_params.get('n_gpu_layers', 0)}")
+    print(f"  CPU Threads: {creation_params.get('n_threads', 4)}")
+    print(f"  Batch Size: {creation_params.get('n_batch', 512)}")
+    print(f"  Context Size: {creation_params.get('n_ctx', 8192)}")
 
     # Initialize AI Model
-    print("Initializing LLM llama.cpp model ...")
+    print("\nInitializing LLM llama.cpp model ...")
     model = Llama(**creation_params)
-    print("llama.cpp model initialized")
+    print("llama.cpp model initialized successfully")
 
 
-    print("Initializing TTS CoquiEngine ...")    
+    print("\nInitializing TTS CoquiEngine ...")    
     # import logging
     # logging.basicConfig(format='AI Voicetalk: %(message)s', level=logging.DEBUG)
     # coqui_engine = CoquiEngine(cloning_reference_wav="female.wav", language="en", level=logging.DEBUG)
-    coqui_engine = CoquiEngine(cloning_reference_wav="female.wav", language="en", speed=1.0)
+    
+    # Optimize TTS engine settings for lower latency
+    tts_params = {
+        "cloning_reference_wav": "female.wav",
+        "language": "en",
+        "speed": 1.1  # Slightly faster for reduced latency
+    }
+    
+    # GPU-specific optimizations for TTS
+    if hw_config['gpu']['available']:
+        print("GPU detected: Enabling GPU acceleration for TTS")
+        # CoquiEngine will automatically use GPU if available
+    
+    coqui_engine = CoquiEngine(**tts_params)
+    print("CoquiEngine initialized successfully")
 
-    print("Initializing STT AudioToTextRecorder ...")
-    #stream = TextToAudioStream(coqui_engine, log_characters=True, level=logging.DEBUG)
+    print("\nInitializing STT AudioToTextRecorder ...")
+    
+    # Optimize STT settings based on hardware
+    stt_model = "tiny.en"  # Fast, low latency
+    if hw_config['gpu']['available'] and hw_config['gpu']['is_ampere']:
+        # Ampere GPUs can handle larger models efficiently
+        stt_model = "base.en"  # Better accuracy with acceptable latency on Ampere
+        print(f"Ampere GPU detected: Using '{stt_model}' model for better accuracy")
+    else:
+        print(f"Using '{stt_model}' model for optimal speed")
+    
     stream = TextToAudioStream(coqui_engine, log_characters=True)
-    recorder = AudioToTextRecorder(model="tiny.en", language="en", spinner=False)
+    recorder = AudioToTextRecorder(
+        model=stt_model,
+        language="en",
+        spinner=False,
+        silero_sensitivity=0.4,  # Slightly more aggressive voice detection
+        webrtc_sensitivity=3,    # Balanced sensitivity
+        post_speech_silence_duration=0.4  # Reduced for faster response
+    )
 
 
     print()
